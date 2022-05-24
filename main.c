@@ -15,7 +15,7 @@
 char* formatTime(int time_seconds);
 
 enum {init, setup, cooking, cleared, completed, interrupted, paused} state;
-
+enum {A, B, C, D, InvalidInput} choices;
 
 
 //============================= Microwave Functions =============================//
@@ -47,7 +47,153 @@ void lightup(char ledcode){
 	RGB_OUTPUT(none);
 	SysTick_Wait10ms(100);
 	}
+//return time in 10ms
+int cooking_setup(unsigned char button_1, unsigned char button_2, unsigned char button_3){
+	char weight = 'z';
+	int weight_int;
+	char user_input = 'z';
+	int cooking_time = 0;
+	// for option D
+	int timer[4] = {0,0,0,0};
+	int timer_copy[4] = {0,0,0,0};
+	int i;
+	int time = 0;
+	int broke = 0;
+	char* lcd_output;
 	
+	LCD_WRITE("Enter Option");
+	user_input = keypadInput();
+	if (user_input != 'A' && user_input != 'B' && user_input != 'C' && user_input != 'D')
+	{
+		choices = InvalidInput;
+	}
+	if (user_input == 'A') choices = A;
+	if (user_input == 'B') choices = B;
+	if (user_input == 'C') choices = C;
+	if (user_input == 'D') choices = D;
+	
+	while(1)
+	{
+		switch (choices){
+			case A:
+				LCD_WRITE("Popcorn");
+				SysTick_Wait10ms(200);
+				cooking_time =6000;
+				return cooking_time;
+			break;
+			
+			case B:
+				LCD_WRITE("BEEF WEIGHT?");
+				// user enters between 1 and 9
+				while (weight =='z')
+				{
+					lightup(all);
+					weight = keypadInput();
+					LCD_WRITE("");
+					LCD_DATA(weight);
+					SysTick_Wait10ms(100);
+				}
+				// Invalid Inputs
+				if (weight == 'A' || weight == 'B' || weight == 'C' || weight == 'D' || weight == '*' || weight == '#' || weight == '0'){
+					LCD_WRITE("Invalid Input");
+					SysTick_Wait10ms(200);
+					weight = 'z';
+					continue;
+				}
+				weight_int = weight - '0';
+				cooking_time = weight_int*0.5*60*100;
+				return cooking_time;
+			break;
+			
+			case C:
+				LCD_WRITE("CHICKEN WEIGHT?");
+				SysTick_Wait10ms(100);
+				// user enters between 1 and 9
+					while (weight =='z')
+				{
+					weight = keypadInput();
+					LCD_WRITE("");
+					LCD_DATA(weight);
+					SysTick_Wait10ms(100);
+					continue;
+				}
+				
+				// Invalid Inputs
+				if (weight == 'A' || weight == 'B' || weight == 'C' || weight == 'D' || weight == '*' || weight == '#' || weight == '0'){
+					LCD_WRITE("Invalid Input");
+					SysTick_Wait10ms(200);
+					weight = 'z';
+					continue;
+				}
+				weight_int = weight - '0';
+				//time in 10ms, 0.2min per 1kilo weight
+				cooking_time = weight_int*100 *0.2 *60;
+				return cooking_time;
+			break;
+			
+			case D:
+				LCD_WRITE("Cooking Time? ");
+				SysTick_Wait10ms(200);
+						
+				// Save User Inputs
+				for (i=0; i<4; i++){
+					broke = 0;
+					user_input = 'z';
+					if (i != 0)
+					{
+						LCD_WRITE(lcd_output);
+						SysTick_Wait10ms(100);
+					}
+					while(user_input ==  'z')
+					{
+						if (SW_INPUT() == button_2)
+						{
+							lightup(0x8);
+							time = 0;
+							broke = 1;
+							i++;
+							time = time_from_array(timer_copy, i);
+							break; 
+						}
+						user_input = keypadInput_optionD();
+					}
+				if (broke == 1) break;
+
+						if (user_input == 'A' || user_input == 'B' || user_input == 'C' || user_input == 'D' || user_input == '*' || user_input == '#'){
+							LCD_WRITE("Invalid Input");
+							SysTick_Wait10ms(100);
+							LCD_WRITE("");
+							user_input = 'z';
+							// Loop doesnt count
+							i--;
+							continue;
+						}
+						timer[i] = user_input - '0';
+						copyArray(timer, timer_copy,4);
+						time = time_from_array(timer_copy, i);
+						lcd_output = formatTime(time);
+						
+						
+			}
+				//ex: [1,2,0,0] -> [0,0,1,2]
+				copyArray(timer, timer_copy,4);
+				lcd_output = formatTime(time);
+				LCD_WRITE(lcd_output);
+				SysTick_Wait10ms(50);
+				cooking_time = time*100;
+				return cooking_time;
+			break;
+			
+			case InvalidInput:
+				LCD_WRITE("Invalid Input");
+				SysTick_Wait10ms(200);
+				return 0;
+			break;
+		}
+	}
+}	
+
+
 void Init(){
 	char button_1 = 0x01; 
 	char button_2 = 0x10;
@@ -97,7 +243,13 @@ int main(){
 				break;
 			
 			case setup:
-				
+				cooking_time_10ms = cooking_setup(button_1, button_2, button_3);
+				if (cooking_time_10ms!=0)
+				{
+					delay = cooking_time_10ms;
+					time_consumed = delay;
+					state = cooking;
+				}
 			break;
 			
 			case cooking:
