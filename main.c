@@ -127,20 +127,49 @@ int main(){
 				if (time_consumed == 0) state = completed;
 			break;
 			
+			
 			case paused:
-				
+				lightup(0x02);
+				if (SW_INPUT() ==button_1)
+				{
+					state = cleared;
+					break;
+				}
+				if (SW_INPUT() ==button_2)
+				{
+					state = cooking;
+					break;
+				}
+				state = paused;
 			break;
 			
 			case cleared:
-				
+				LCD_WRITE("Cleared");
+				SysTick_Wait10ms(300);
+				cooking_time_10ms = 0;
+				time_consumed = 0;
+				state = init;
 			break;
 			
 			case interrupted:
-				
+				LCD_WRITE("CLOSE THE DOOR");
+				SysTick_Wait10ms(100);
+				if (SW3_Input() == 0) state = cooking;
+				if (SW_INPUT() == button_1) state = cleared;
 			break;
 			
 			case completed:
-				
+				buzzer(0x08);
+				for ( i = 0 ; i < 3 ; i++)
+				{
+					RGB_OUTPUT(none);
+					SysTick_Wait10ms(100);
+					RGB_OUTPUT(all);
+					SysTick_Wait10ms(100);
+				}	
+				buzzer(0);
+				RGB_OUTPUT(none);
+				state = init;
 			break;
 		}
 		
