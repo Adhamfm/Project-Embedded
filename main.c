@@ -248,7 +248,15 @@ int main(){
 				{
 					delay = cooking_time_10ms;
 					time_consumed = delay;
-					state = cooking;
+					LCD_WRITE("SW2 TO START");
+					while(1)
+					{
+						if(SW_INPUT() ==button_2)
+						{
+							state = cooking;
+							break;
+						}
+					}
 				}
 			break;
 			
